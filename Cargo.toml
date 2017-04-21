@@ -23,7 +23,7 @@ find_folder = { optional = true, version = "0.3.0" }
 
 [features]
 default = ["wav"]
-wav = ["hound"]
+wav = ["hound", "find_folder"]
 serde_serialization = [
     "serde",
     "serde_json",

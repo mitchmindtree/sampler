@@ -120,10 +120,55 @@ pub mod wav {
         pub fn from_file<P>(path: P, target_sample_hz: f64) -> Result<Self, Error>
             where P: AsRef<std::path::Path>,
         {
+            use find_folder;
             use sample::{Frame, Sample, Signal};
 
-            let path = path.as_ref();
-            let mut wav_reader = try!(hound::WavReader::open(path));
+            let mut path = std::path::PathBuf::from(path.as_ref());
+
+            // If the given path does not exist, try searching for it within the assets directory
+            // if there is one.
+            if !path.exists() {
+                if let Ok(exe_path) = std::env::current_exe() {
+                    if let Some(exe_parent) = exe_path.parent() {
+                        if let Ok(assets) = find_folder::Search::KidsThenParents(3, 7)
+                            .of(exe_parent.into())
+                            .for_folder("assets")
+                        {
+                            use std::path::Component;
+
+                            // Find the "assets" directory within the given path's components.
+                            //
+                            // If we can find it, append the relevant components of `path` to it.
+                            let new_path: Option<std::path::PathBuf> = {
+                                let mut components = path.components();
+                                components
+                                    .find(|component| match *component {
+                                        Component::Normal(os_str) if os_str.to_str() == Some("assets") => true,
+                                        _ => false,
+                                    })
+                                    .map(|_| {
+                                        assets.components()
+                                            .chain(components)
+                                            .map(|c| c.as_os_str())
+                                            .collect()
+                                    })
+                            };
+
+                            // If there's a new path, notify that we are trying it instead and
+                            // update `path`.
+                            if let Some(new_path) = new_path {
+                                use std::io::Write;
+                                writeln!(&mut std::io::stderr(),
+                                         "Sampler: Could not find {}! Trying {} instead...",
+                                         path.display(), new_path.display()).ok();
+                                path = new_path;
+                            }
+                        }
+                    }
+                }
+            }
+
+            let mut wav_reader = try!(hound::WavReader::open(&path));
 
             let spec = wav_reader.spec();
 
@@ -222,7 +267,7 @@ pub mod wav {
                 .collect();
 
             Ok(Audio {
-                path: path.to_path_buf(),
+                path: path,
                 sample_hz: target_sample_hz,
                 data: frames.into_boxed_slice(),
             })

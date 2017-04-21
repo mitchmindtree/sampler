@@ -1,4 +1,5 @@
 #[cfg(feature="wav")] extern crate hound;
+#[cfg(feature="wav")] extern crate find_folder;
 pub extern crate instrument;
 pub extern crate sample;
 extern crate pitch_calc as pitch;

@@ -1070,9 +1070,8 @@ mod sampler {
 
 #[cfg(feature="wav")]
 mod wav_audio {
-    extern crate find_folder;
-
     use audio::wav;
+    use find_folder;
     use sample;
     use super::serde;
     use std;
@@ -1154,7 +1153,9 @@ mod wav_audio {
                                     match value {
                                         "path" => Ok(Field::Path),
                                         "sample_hz" => Ok(Field::SampleHz),
-                                        _ => Err(serde::de::Error::custom("expected path or sample_hz")),
+                                        _ => {
+                                            Err(serde::de::Error::custom("expected path or sample_hz"))
+                                        },
                                     }
                                 }
                             }
